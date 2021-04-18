@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "143564787386",
+    "project_id": "sky-high-5a17d",
+    "storage_bucket": "sky-high-5a17d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:143564787386:android:6e22eac9ca72ea79cc7c83",
+        "android_client_info": {
+          "package_name": "ru.itschool.skyhigh"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "143564787386-cnof6pikv984gj48lvi7h43fmh8t805k.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "ru.itschool.skyhigh",
+            "certificate_hash": "d1532573ad8e8f91949b55dd4590bcea7b36757b"
+          }
+        },
+        {
+          "client_id": "143564787386-lq7485an83tp6t122c8qjg7rfb1t6jk2.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCK0xVQeu9KAesa5JqvpC2JaBsI0XeuZoo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "143564787386-lq7485an83tp6t122c8qjg7rfb1t6jk2.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
