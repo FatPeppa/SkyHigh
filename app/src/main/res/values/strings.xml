@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">SkyHigh</string>
+    <string name="messagetext">MessageText</string>
+    <string name="btnSignInText">Войти</string>
+    <string name="btnRegText">Зарегистрироваться</string>
+    <string name="loginFieldHint">Введите номер телефона…</string>
+    <string name="passFieldHint">Введите пароль…</string>
 </resources>

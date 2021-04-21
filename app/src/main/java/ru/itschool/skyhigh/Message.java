@@ -11,7 +11,7 @@ public class Message {
     public Message(String userName, String textMessage) {
         this.userName = userName;
         this.textMessage = textMessage;
-
+        
         this.messageTime = new Date().getTime();
     }
 
