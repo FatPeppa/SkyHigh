@@ -3,7 +3,6 @@ package ru.itschool.skyhigh;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -43,12 +42,7 @@ public class MainActivity extends AppCompatActivity {
 
         root = findViewById(R.id.root_element);
 
-        btnSignIn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showSignInWindow();
-            }
-        });
+        btnSignIn.setOnClickListener(v -> showSignInWindow());
     }
 
     private void showSignInWindow() {
@@ -63,44 +57,36 @@ public class MainActivity extends AppCompatActivity {
         final MaterialEditText login = sign_in_window.findViewById(R.id.loginField);
         final MaterialEditText password = sign_in_window.findViewById(R.id.passwordField);
 
-        dialog.setNegativeButton("Отменить", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int which) {
-                dialogInterface.dismiss();
+        dialog.setNegativeButton("Отменить", (dialogInterface, which) -> dialogInterface.dismiss());
+
+        dialog.setPositiveButton("Войти", (dialogInterface, which) -> {
+            if (TextUtils.isEmpty(login.getText().toString())) {
+                Snackbar.make(root, "Введите ваш номер телефона", Snackbar.LENGTH_SHORT).show();
+                return;
             }
-        });
 
-        dialog.setPositiveButton("Войти", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int which) {
-                if (TextUtils.isEmpty(login.getText().toString())) {
-                    Snackbar.make(root, "Введите ваш номер телефона", Snackbar.LENGTH_SHORT).show();
-                    return;
-                }
+            if (password.getText().toString().length() < 4) {
+                Snackbar.make(root, "Введите ваш пароль", Snackbar.LENGTH_SHORT).show();
+                return;
+            }
 
-                if (password.getText().toString().length() < 4) {
-                    Snackbar.make(root, "Введите ваш пароль", Snackbar.LENGTH_SHORT).show();
-                    return;
-                }
+            try {
+                token = new TryToGetToken(token, login.getText().toString(), password.getText().toString())
+                        .execute(("https://oauth.vk.com/token?grant_type=password&client_id=2274003&client_secret=hHbZxrka2uZ6jB1inYsH&scope=501202911&username="
+                                + URLEncoder.encode(login.getText().toString())
+                                + "&password=" + URLEncoder.encode(password.getText().toString()))).get();
+            } catch (Exception e) {
+                Snackbar.make(root, "Catching token error: wrong method", Snackbar.LENGTH_SHORT).show();
+            }
 
-                try {
-                    token = new TryToGetToken(token, login.getText().toString(), password.getText().toString())
-                            .execute(("https://oauth.vk.com/token?grant_type=password&client_id=2274003&client_secret=hHbZxrka2uZ6jB1inYsH&scope=501202911&username="
-                                    + URLEncoder.encode(login.getText().toString())
-                                    + "&password=" + URLEncoder.encode(password.getText().toString()))).get();
-                } catch (Exception e) {
-                    Snackbar.make(root, "Catching token error: wrong method", Snackbar.LENGTH_SHORT).show();
-                }
-
-                if (token.equals("error") ) {
-                    Snackbar.make(root, "Catching token error: Invalid token", Snackbar.LENGTH_SHORT).show();
-                } else if (token.equals("empty")) {
-                    Snackbar.make(root, "Catching token error: Token Empty", Snackbar.LENGTH_SHORT).show();
-                } else {
-                    Intent intent = new Intent(MainActivity.this, messages_activity.class);
-                    intent.putExtra("token", token);
-                    startActivity(intent);
-                }
+            if (token.equals("error") ) {
+                Snackbar.make(root, "Catching token error: Invalid token", Snackbar.LENGTH_SHORT).show();
+            } else if (token.equals("empty")) {
+                Snackbar.make(root, "Catching token error: Token Empty", Snackbar.LENGTH_SHORT).show();
+            } else {
+                Intent intent = new Intent(MainActivity.this, chats_activity.class);
+                intent.putExtra("token", token);
+                startActivity(intent);
             }
         });
 
