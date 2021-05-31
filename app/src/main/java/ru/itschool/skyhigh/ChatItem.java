@@ -5,10 +5,10 @@ import java.util.Date;
 public class ChatItem {
     public String chatName;
     public String text_lastMessage;
-    private long lastMessageTime;
+    private String lastMessageTime;
 
     public ChatItem() {}
-    public ChatItem(String chatName, String text_lastMessage, long lastMessageTime) {
+    public ChatItem(String chatName, String text_lastMessage, String lastMessageTime) {
         this.chatName = chatName;
         this.text_lastMessage = text_lastMessage;
 
@@ -31,11 +31,12 @@ public class ChatItem {
         this.text_lastMessage = text_lastMessage;
     }
 
-    public long getLastMessageTime() {
+    public String getLastMessageTime() {
+
         return lastMessageTime;
     }
 
-    public void setLastMessageTime(long lastMessageTime) {
+    public void setLastMessageTime(String lastMessageTime) {
         this.lastMessageTime = lastMessageTime;
     }
 }

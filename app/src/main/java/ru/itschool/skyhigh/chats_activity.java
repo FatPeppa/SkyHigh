@@ -8,17 +8,23 @@ import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class chats_activity extends AppCompatActivity {
     private static final String vk_url = "https://api.vk.com/method";
@@ -41,95 +47,299 @@ public class chats_activity extends AppCompatActivity {
     private void displayAllChats() {
         ListView chats = findViewById(R.id.list_of_chats);
 
-        //Array chatArr =
+        ArrayList<ChatItem> chatArr = null;
+        try {
+            chatArr = new TryToGetArrayOfChats(token).execute().get();
+        } catch (ExecutionException | InterruptedException e) {
+            e.printStackTrace();
+        }
 
         ArrayAdapter<ChatItem> chatsAdapter
-                = new ArrayAdapter<ChatItem>(this, R.layout.chat_item, chatArr);
+                = new ArrayAdapter<ChatItem>(this, R.layout.chat_item, chatArr){
 
+        };
 
+        chats.setAdapter(chatsAdapter);
     }
 
-    private class TryToGetArrayOfChats extends AsyncTask<String, Void, ArrayList> {
+
+    private class TryToGetArrayOfChats extends AsyncTask<String, Void, ArrayList<ChatItem>> {
         String token;
 
         public TryToGetArrayOfChats (String token) {
             this.token = token;
-
         }
 
-        protected String doInBackground(String... urls) {
-            String link = urls[0];
-            String myToken = null;
+        protected ArrayList<ChatItem> doInBackground(String... urls) {
+            ArrayList<ChatItem> chatArray = null;
 
             try {
-                myToken = getToken(login, password, link);
+                //chatArray = getChatItemsFunc();
+//new
+                URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                JSONObject object = new JSONObject(MainActivity.getStringResponse(con).toString());
+                JSONObject resObj = object.getJSONObject("response");
+
+                //JSONObject resObj = new JSONObject(MainActivity.getStringResponse(con).toString()).getJSONObject("response");
+
+                //JSONObject resObj = new TryToGetResObject(token,
+                //        vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138").execute().get();
+
+                int index = 0;
+                while (!resObj.getJSONArray("items").isNull(index)) {
+                    JSONObject last_message = resObj.getJSONArray("items").getJSONObject(index).getJSONObject("last_message");
+                    ChatItem item = new ChatItem();
+
+                    //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
+                    item.setChatName(last_message.getString("id"));
+
+                    //устновка текста последнего сообщения
+                    if (!last_message.getString("text").equals("")) {
+                        item.setText_lastMessage(message_format(last_message.getString("text"), 1));
+
+                    } else if (last_message.getJSONArray("attachments").isNull(0) && last_message.getJSONArray("fwd_messages").isNull(0)) {
+                        item.setText_lastMessage("Сервисное сообщение");
+
+                    } else if (last_message.getJSONArray("attachments").isNull(0) && !last_message.getJSONArray("fwd_messages").isNull(0)) {
+                        item.setText_lastMessage("Пересланное сообщение.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("wall")) {
+                        item.setText_lastMessage("Запись на стене.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("audio_message")) {
+                        item.setText_lastMessage("Аудиозапись.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("photo")) {
+                        item.setText_lastMessage("Фотография.");
+
+                    } else {
+                        item.setText_lastMessage("Not this format.");
+
+                    }
+
+                    //Установка даты + времени последнего сообщения
+                    long unixSeconds = last_message.getLong("date");
+                    Date date = new java.util.Date(unixSeconds*1000L);
+                    SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
+                    String formattedDate = sdf.format(date);
+                    item.setLastMessageTime(formattedDate);
+
+                    chatArray.add(item);
+
+                    index++;
+                }
+
+                //url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
+
+
+                object = new JSONObject(MainActivity.getStringResponse(con).toString());
+                //resObj = new TryToGetResObject(token,
+                //        vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138").execute().get();
+                resObj = object.getJSONObject("response");
+
+                int i = 0;
+                while (!resObj.getJSONArray("items").isNull(i)) {
+
+                    JSONObject last_message = resObj.getJSONArray("items").getJSONObject(i).getJSONObject("last_message");
+
+                    ChatItem item = new ChatItem();
+
+                    //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
+                    item.setChatName(last_message.getString("id"));
+
+                    //устновка текста последнего сообщения
+                    if (!last_message.getString("text").equals("")) {
+                        item.setText_lastMessage(message_format(last_message.getString("text"), 1));
+
+                    } else if (last_message.getJSONArray("attachments").isNull(0) && last_message.getJSONArray("fwd_messages").isNull(0)) {
+                        item.setText_lastMessage("Сервисное сообщение");
+
+                    } else if (last_message.getJSONArray("attachments").isNull(0) && !last_message.getJSONArray("fwd_messages").isNull(0)) {
+                        item.setText_lastMessage("Пересланное сообщение.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("wall")) {
+                        item.setText_lastMessage("Запись на стене.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("audio_message")) {
+                        item.setText_lastMessage("Аудиозапись.");
+
+                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("photo")) {
+                        item.setText_lastMessage("Фотография.");
+
+                    } else {
+                        item.setText_lastMessage("Not this format.");
+
+                    }
+
+                    //Установка даты + времени последнего сообщения
+                    long unixSeconds = last_message.getLong("date");
+                    Date date = new java.util.Date(unixSeconds*1000L);
+                    SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
+                    String formattedDate = sdf.format(date);
+                    item.setLastMessageTime(formattedDate);
+
+                    chatArray.add(item);
+
+                    i++;
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            return myToken;
+            return chatArray;
         }
+//new
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(ArrayList<ChatItem> result) {
             super.onPostExecute(result);
         }
     }
 
-    public static String getStringResponse(HttpURLConnection con) throws IOException {
-        BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = br.readLine()) != null) {
-            sb.append(line + "\n");
+    private class TryToGetResObject extends AsyncTask<String, Void, JSONObject> {
+        String token;
+        String url;
+
+        public TryToGetResObject (String token, String url) {
+            this.token = token;
+            this.url = url;
         }
-        br.close();
-        return sb.toString();
+
+        protected JSONObject doInBackground(String... urls) {
+            JSONObject object = null;
+
+            try {
+                //URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
+                URL url = new URL(this.url);
+                HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+                JSONObject obj = new JSONObject(MainActivity.getStringResponse(con).toString());
+                object = obj.getJSONObject("response");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            return object;
+        }
+
+        protected void onPostExecute(JSONObject result) {
+            super.onPostExecute(result);
+        }
     }
 
-    public static ArrayList<ChatItem> getChats(String token) throws Exception {
-        ArrayList<ChatItem> chatItemList = new ArrayList();
-
-        URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
+    //Работа с LongPool
+    public static JSONObject getLongPollServer() throws IOException, JSONException {
+        URL url = new URL(vk_url + "/messages.getLongPollServer?access_token=" + token + "&lp_version=3&v=5.130");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        JSONObject response = new JSONObject(getStringResponse(con));
+        String response = MainActivity.getStringResponse(con);
+        JSONObject resp = new JSONObject(response);
 
-        int index = 0;
-        while (!response.getJSONArray("items").isNull(index)) {
-            JSONObject last_message = response.getJSONArray("items")
-                    .getJSONObject(index).getJSONObject("last_message");
+        return resp.getJSONObject("response");
+    }
 
+    public static JSONObject sendLongPoll(String server, String key, String ts) throws IOException, JSONException {
+        URL URLServer = new URL("https://" + server + "?key=" + key + "&act=a_check&wait=25&ts=" + ts + "&version=3");
+        HttpURLConnection connection = (HttpURLConnection) URLServer.openConnection();
+        String a = MainActivity.getStringResponse(connection);
+
+        return new JSONObject(a);
+    }
+
+    // Получение/установка токена
+    public static String getToken() {
+        return token;
+    }
+
+    public static void setToken(String token) {
+        chats_activity.token = token;
+    }
+
+    // Получение ArrayList из ChatItem
+    public static ArrayList<ChatItem> getChatItemsFunc() throws IOException, JSONException {
+        ArrayList<ChatItem> array = null;
+        ArrayList<JSONObject> lastMessages = getArrayOfLastMessage();
+
+        for (int i = 0; i < lastMessages.size(); i++) {
+            JSONObject last_message = lastMessages.get(i);
+
+            ChatItem item = new ChatItem();
+
+            //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
+            item.setChatName(last_message.getString("id"));
+
+            //устновка текста последнего сообщения
             if (!last_message.getString("text").equals("")) {
-                ChatItem item = new ChatItem(,
-                        ,message_format(last_message.getString("text"), 1)
-                        );
-                chatItemList.add(message_format(last_message.getString("text"), 1));
+                item.setText_lastMessage(message_format(last_message.getString("text"), 1));
 
             } else if (last_message.getJSONArray("attachments").isNull(0) && last_message.getJSONArray("fwd_messages").isNull(0)) {
-                System.out.println("Сервисное сообщение index: " + index);
-                chatItemList.add("Сервисное сообщение index: ")
+                item.setText_lastMessage("Сервисное сообщение");
+
             } else if (last_message.getJSONArray("attachments").isNull(0) && !last_message.getJSONArray("fwd_messages").isNull(0)) {
-                System.out.println("Пересланное сообщение: " + index);
+                item.setText_lastMessage("Пересланное сообщение.");
 
             } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("wall")) {
-                System.out.println("Запись на стене. index: " + index);
+                item.setText_lastMessage("Запись на стене.");
 
             } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("audio_message")) {
-                System.out.println("Аудиозапись. index: " + index);
+                item.setText_lastMessage("Аудиозапись.");
 
             } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("photo")) {
-                System.out.println("Фотография. index: " + index);
+                item.setText_lastMessage("Фотография.");
 
             } else {
-                System.out.println("Последнее сообщение этого чата не принадлежит заданному формату index: " + index);
-            }
-            System.out.println();
+                item.setText_lastMessage("Not this format.");
 
+            }
+
+            //Установка даты + времени последнего сообщения
+            long unixSeconds = last_message.getLong("date");
+            Date date = new java.util.Date(unixSeconds*1000L);
+            SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
+            String formattedDate = sdf.format(date);
+            item.setLastMessageTime(formattedDate);
+
+            array.add(item);
+        }
+
+        return array;
+    }
+
+    // Получение последних сообщений из всех чатов
+    public static ArrayList<JSONObject> getArrayOfLastMessage() throws IOException, JSONException {
+        ArrayList<JSONObject> array = null;
+        URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+        JSONObject object = new JSONObject(MainActivity.getStringResponse(con).toString());
+        JSONObject resObj = object.getJSONObject("response");
+
+        int index = 0;
+        while (!resObj.getJSONArray("items").isNull(index)) {
+            JSONObject last_message = resObj.getJSONArray("items").getJSONObject(index).getJSONObject("last_message");
+            array.add(last_message);
+            
             index++;
         }
 
-        return null;
+        url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
+        con = (HttpURLConnection) url.openConnection();
+
+        object = new JSONObject(MainActivity.getStringResponse(con).toString());
+        resObj = object.getJSONObject("response");
+
+        int i = 0;
+        while (!resObj.getJSONArray("items").isNull(i)) {
+            JSONObject last_message = resObj.getJSONArray("items").getJSONObject(i).getJSONObject("last_message");
+            array.add(last_message);
+
+            i++;
+        }
+
+        return array;
     }
 
+    //Редактирование текста
     private static String message_format(String text, int format_id) {
         switch (format_id) {
             case 1:
@@ -156,12 +366,6 @@ public class chats_activity extends AppCompatActivity {
         return str;
     }
 
-    public static String getToken() {
-        return token;
-    }
-
-    public static void setToken(String token) {
-        chats_activity.token = token;
-    }
-
 }
+
+
