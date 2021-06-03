@@ -2,11 +2,16 @@ package ru.itschool.skyhigh;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,7 +36,6 @@ public class chats_activity extends AppCompatActivity {
     private static String token;
     //private List<Message> chats_last_messages;
 
-
     EditText text;
 
     @Override
@@ -47,17 +51,15 @@ public class chats_activity extends AppCompatActivity {
     private void displayAllChats() {
         ListView chats = findViewById(R.id.list_of_chats);
 
-        ArrayList<ChatItem> chatArr = null;
+        ArrayList<ChatItem> chatArr = new ArrayList<>();
+
         try {
             chatArr = new TryToGetArrayOfChats(token).execute().get();
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
 
-        ArrayAdapter<ChatItem> chatsAdapter
-                = new ArrayAdapter<ChatItem>(this, R.layout.chat_item, chatArr){
-
-        };
+        ChatAdapter chatsAdapter = new ChatAdapter(this, chatArr);
 
         chats.setAdapter(chatsAdapter);
     }
@@ -71,126 +73,15 @@ public class chats_activity extends AppCompatActivity {
         }
 
         protected ArrayList<ChatItem> doInBackground(String... urls) {
-            ArrayList<ChatItem> chatArray = null;
-
+            ArrayList<ChatItem> chatArray = new ArrayList<>();
             try {
-                //chatArray = getChatItemsFunc();
-//new
-                URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
-                HttpURLConnection con = (HttpURLConnection) url.openConnection();
-
-                JSONObject object = new JSONObject(MainActivity.getStringResponse(con).toString());
-                JSONObject resObj = object.getJSONObject("response");
-
-                //JSONObject resObj = new JSONObject(MainActivity.getStringResponse(con).toString()).getJSONObject("response");
-
-                //JSONObject resObj = new TryToGetResObject(token,
-                //        vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138").execute().get();
-
-                int index = 0;
-                while (!resObj.getJSONArray("items").isNull(index)) {
-                    JSONObject last_message = resObj.getJSONArray("items").getJSONObject(index).getJSONObject("last_message");
-                    ChatItem item = new ChatItem();
-
-                    //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
-                    item.setChatName(last_message.getString("id"));
-
-                    //устновка текста последнего сообщения
-                    if (!last_message.getString("text").equals("")) {
-                        item.setText_lastMessage(message_format(last_message.getString("text"), 1));
-
-                    } else if (last_message.getJSONArray("attachments").isNull(0) && last_message.getJSONArray("fwd_messages").isNull(0)) {
-                        item.setText_lastMessage("Сервисное сообщение");
-
-                    } else if (last_message.getJSONArray("attachments").isNull(0) && !last_message.getJSONArray("fwd_messages").isNull(0)) {
-                        item.setText_lastMessage("Пересланное сообщение.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("wall")) {
-                        item.setText_lastMessage("Запись на стене.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("audio_message")) {
-                        item.setText_lastMessage("Аудиозапись.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("photo")) {
-                        item.setText_lastMessage("Фотография.");
-
-                    } else {
-                        item.setText_lastMessage("Not this format.");
-
-                    }
-
-                    //Установка даты + времени последнего сообщения
-                    long unixSeconds = last_message.getLong("date");
-                    Date date = new java.util.Date(unixSeconds*1000L);
-                    SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
-                    String formattedDate = sdf.format(date);
-                    item.setLastMessageTime(formattedDate);
-
-                    chatArray.add(item);
-
-                    index++;
-                }
-
-                //url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
-
-
-                object = new JSONObject(MainActivity.getStringResponse(con).toString());
-                //resObj = new TryToGetResObject(token,
-                //        vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138").execute().get();
-                resObj = object.getJSONObject("response");
-
-                int i = 0;
-                while (!resObj.getJSONArray("items").isNull(i)) {
-
-                    JSONObject last_message = resObj.getJSONArray("items").getJSONObject(i).getJSONObject("last_message");
-
-                    ChatItem item = new ChatItem();
-
-                    //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
-                    item.setChatName(last_message.getString("id"));
-
-                    //устновка текста последнего сообщения
-                    if (!last_message.getString("text").equals("")) {
-                        item.setText_lastMessage(message_format(last_message.getString("text"), 1));
-
-                    } else if (last_message.getJSONArray("attachments").isNull(0) && last_message.getJSONArray("fwd_messages").isNull(0)) {
-                        item.setText_lastMessage("Сервисное сообщение");
-
-                    } else if (last_message.getJSONArray("attachments").isNull(0) && !last_message.getJSONArray("fwd_messages").isNull(0)) {
-                        item.setText_lastMessage("Пересланное сообщение.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("wall")) {
-                        item.setText_lastMessage("Запись на стене.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("audio_message")) {
-                        item.setText_lastMessage("Аудиозапись.");
-
-                    } else if (last_message.getJSONArray("attachments").getJSONObject(0).getString("type").equals("photo")) {
-                        item.setText_lastMessage("Фотография.");
-
-                    } else {
-                        item.setText_lastMessage("Not this format.");
-
-                    }
-
-                    //Установка даты + времени последнего сообщения
-                    long unixSeconds = last_message.getLong("date");
-                    Date date = new java.util.Date(unixSeconds*1000L);
-                    SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
-                    String formattedDate = sdf.format(date);
-                    item.setLastMessageTime(formattedDate);
-
-                    chatArray.add(item);
-
-                    i++;
-                }
-            } catch (Exception e) {
+                chatArray = getChatItemsFunc();
+            } catch (IOException | JSONException e) {
                 e.printStackTrace();
             }
 
             return chatArray;
         }
-//new
 
         protected void onPostExecute(ArrayList<ChatItem> result) {
             super.onPostExecute(result);
@@ -257,7 +148,7 @@ public class chats_activity extends AppCompatActivity {
 
     // Получение ArrayList из ChatItem
     public static ArrayList<ChatItem> getChatItemsFunc() throws IOException, JSONException {
-        ArrayList<ChatItem> array = null;
+        ArrayList<ChatItem> array = new ArrayList<>();
         ArrayList<JSONObject> lastMessages = getArrayOfLastMessage();
 
         for (int i = 0; i < lastMessages.size(); i++) {
@@ -266,7 +157,9 @@ public class chats_activity extends AppCompatActivity {
             ChatItem item = new ChatItem();
 
             //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
-            item.setChatName(last_message.getString("id"));
+            Long id = (Long) last_message.getLong("id");
+            String strID = id.toString();
+            item.setChatName(strID);
 
             //устновка текста последнего сообщения
             if (!last_message.getString("text").equals("")) {
@@ -307,7 +200,7 @@ public class chats_activity extends AppCompatActivity {
 
     // Получение последних сообщений из всех чатов
     public static ArrayList<JSONObject> getArrayOfLastMessage() throws IOException, JSONException {
-        ArrayList<JSONObject> array = null;
+        ArrayList<JSONObject> array = new ArrayList<>();
         URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
@@ -365,7 +258,30 @@ public class chats_activity extends AppCompatActivity {
         }
         return str;
     }
+}
 
+class ChatAdapter extends ArrayAdapter<ChatItem> {
+
+    public ChatAdapter(Context context, ArrayList<ChatItem> arr) {
+        super(context, R.layout.chat_item, arr);
+    }
+
+    @Override
+    public View getView(int position, View convertView, ViewGroup parent) {
+
+        final ChatItem item = getItem(position);
+
+        if (convertView == null) {
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.chat_item, null);
+        }
+
+        // Заполняем адаптер
+        ((TextView) convertView.findViewById(R.id.chatName)).setText(item.getChatName());
+        ((TextView) convertView.findViewById(R.id.lastMessageTime)).setText(item.getLastMessageTime());
+        ((TextView) convertView.findViewById(R.id.text_lastMessage)).setText(item.getText_lastMessage());
+
+        return convertView;
+    }
 }
 
 
