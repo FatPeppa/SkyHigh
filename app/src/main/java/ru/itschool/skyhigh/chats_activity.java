@@ -3,6 +3,7 @@ package ru.itschool.skyhigh;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -37,15 +38,32 @@ public class chats_activity extends AppCompatActivity {
     //private List<Message> chats_last_messages;
 
     EditText text;
+    SharedPreferences prefs;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_chats_activity);
+        prefs = this.getSharedPreferences(
+                "com.example.app", Context.MODE_PRIVATE);
 
         token = getIntent().getStringExtra("token");
 
         displayAllChats();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
+        //ediText.setText(prefs.getString("tag", ""));
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+
+        //prefs.edit().putString("tag", editText.getText().toString()).apply();
     }
 
     private void displayAllChats() {
