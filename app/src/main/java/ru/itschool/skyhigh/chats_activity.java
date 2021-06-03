@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,8 @@ import android.widget.EditText;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Text;
@@ -119,7 +122,6 @@ public class chats_activity extends AppCompatActivity {
             JSONObject object = null;
 
             try {
-                //URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
                 URL url = new URL(this.url);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
@@ -174,10 +176,11 @@ public class chats_activity extends AppCompatActivity {
 
             ChatItem item = new ChatItem();
 
+            //Установка типа последней беседы
+            item.setChat_Type("test_ChatType");
+
             //Установка названия беседы/имени пользователя последнего диалога - пока не работает корректно
-            Long id = (Long) last_message.getLong("id");
-            String strID = id.toString();
-            item.setChatName(strID);
+            item.setChatName("test_ChatName");
 
             //устновка текста последнего сообщения
             if (!last_message.getString("text").equals("")) {
@@ -213,6 +216,74 @@ public class chats_activity extends AppCompatActivity {
             array.add(item);
         }
 
+        ArrayList<JSONObject> lastConversations = getArrayOfLastConversations();
+        for (int i = 0; i < lastConversations.size(); i++) {
+            JSONObject last_Conversation = lastConversations.get(i);
+            JSONObject peer = last_Conversation.getJSONObject("peer");
+            long id = peer.getLong("id");
+
+            String type = peer.getString("type");
+            array.get(i).setChat_Type(type);
+            //array.get(i).setChatName(String.valueOf(id));
+            switch (type) {
+                case "user":Log.i("UserCheck", type + String.valueOf(i) + " " + String.valueOf(id));
+                    URL newUrl = new URL(vk_url + "/users.get?user_ids=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
+                    HttpURLConnection con = (HttpURLConnection) newUrl.openConnection();
+                    JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
+                                 Log.i("Cont", object.toString());
+                    //JSONObject resObj = object.getJSONObject("response");
+                    JSONObject resObj = new JSONObject();
+
+                    try {
+                                 Log.i("Cont", object.getJSONArray("response").toString());
+                        JSONArray resObjArr = object.getJSONArray("response");
+                        resObj = resObjArr.getJSONObject(0);
+
+                    } catch (Exception e) {
+                        JSONObject resObjArr = object.getJSONObject("response");
+                        resObj = resObjArr.getJSONObject("response");
+                    }
+
+
+                    array.get(i).setChatName(resObj.getString("first_name") + " " + resObj.getString("last_name"));
+
+                    break;
+                case "chat":Log.i("ChatCheck", type + String.valueOf(i) + " " + String.valueOf(id));
+                    //newUrl = new URL(vk_url + "/messages.getChat?chat_id=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
+                    newUrl = new URL(vk_url + "/messages.getConversationsById?peer_ids=" + id + "&access_token=" + token + "&v=5.138");
+                    con = (HttpURLConnection) newUrl.openConnection();
+                    object = new JSONObject(MainActivity.getStringResponse(con));
+                    resObj = object.getJSONObject("response");
+
+                    JSONObject obj = resObj.getJSONArray("items").getJSONObject(0).getJSONObject("chat_settings");
+
+
+                    array.get(i).setChatName(message_format(obj.getString("title"), 2));
+
+                    break;
+                case "group":Log.i("GroupCheck", type + String.valueOf(i) + " " + String.valueOf(id) );
+                    newUrl = new URL(vk_url + "/groups.getById?group_id=" + -id + "&fields=photo_50&access_token=" + token + "&v=5.138");
+                    con = (HttpURLConnection) newUrl.openConnection();
+                    object = new JSONObject(MainActivity.getStringResponse(con));
+                    resObj = object.getJSONArray("response").getJSONObject(0);
+
+
+                    array.get(i).setChatName(message_format(resObj.getString("name"), 2));
+
+                    break;
+                default:
+                    array.get(i).setChatName("Unknown formatted name");
+                    break;
+            }
+
+            try {
+                Thread.sleep(150);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
+
         return array;
     }
 
@@ -222,7 +293,7 @@ public class chats_activity extends AppCompatActivity {
         URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
-        JSONObject object = new JSONObject(MainActivity.getStringResponse(con).toString());
+        JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
         JSONObject resObj = object.getJSONObject("response");
 
         int index = 0;
@@ -250,12 +321,52 @@ public class chats_activity extends AppCompatActivity {
         return array;
     }
 
+    //Получения ArrayList из последних Conversations
+    public static ArrayList<JSONObject> getArrayOfLastConversations() throws IOException, JSONException {
+        ArrayList<JSONObject> array = new ArrayList<>();
+        URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+        JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
+        JSONObject resObj = object.getJSONObject("response");
+
+        int index = 0;
+        while (!resObj.getJSONArray("items").isNull(index)) {
+            JSONObject last_conversation = resObj.getJSONArray("items").getJSONObject(index).getJSONObject("conversation");
+            array.add(last_conversation);
+
+            index++;
+        }
+
+        url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
+        con = (HttpURLConnection) url.openConnection();
+
+        object = new JSONObject(MainActivity.getStringResponse(con));
+        resObj = object.getJSONObject("response");
+
+        int i = 0;
+        while (!resObj.getJSONArray("items").isNull(i)) {
+            JSONObject last_conversation = resObj.getJSONArray("items").getJSONObject(i).getJSONObject("conversation");
+            array.add(last_conversation);
+
+            i++;
+        }
+
+        return array;
+    }
+
     //Редактирование текста
     private static String message_format(String text, int format_id) {
         switch (format_id) {
             case 1:
                 if (text.length() >= 20 ) {
                     return text = String_cut(text.trim(), 0, 20) + "...";
+                } else {
+                    return text;
+                }
+            case 2:
+                if (text.length() >= 15 ) {
+                    return text = String_cut(text.trim(), 0, 15) + "...";
                 } else {
                     return text;
                 }
