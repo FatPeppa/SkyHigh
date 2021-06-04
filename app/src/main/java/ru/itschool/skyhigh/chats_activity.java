@@ -225,8 +225,9 @@ public class chats_activity extends AppCompatActivity {
             String type = peer.getString("type");
             array.get(i).setChat_Type(type);
             //array.get(i).setChatName(String.valueOf(id));
+            
             switch (type) {
-                case "user":Log.i("UserCheck", type + String.valueOf(i) + " " + String.valueOf(id));
+                case "user":
                     URL newUrl = new URL(vk_url + "/users.get?user_ids=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     HttpURLConnection con = (HttpURLConnection) newUrl.openConnection();
                     JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
@@ -235,7 +236,6 @@ public class chats_activity extends AppCompatActivity {
                     JSONObject resObj = new JSONObject();
 
                     try {
-                                 Log.i("Cont", object.getJSONArray("response").toString());
                         JSONArray resObjArr = object.getJSONArray("response");
                         resObj = resObjArr.getJSONObject(0);
 
@@ -248,7 +248,7 @@ public class chats_activity extends AppCompatActivity {
                     array.get(i).setChatName(resObj.getString("first_name") + " " + resObj.getString("last_name"));
 
                     break;
-                case "chat":Log.i("ChatCheck", type + String.valueOf(i) + " " + String.valueOf(id));
+                case "chat":
                     //newUrl = new URL(vk_url + "/messages.getChat?chat_id=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     newUrl = new URL(vk_url + "/messages.getConversationsById?peer_ids=" + id + "&access_token=" + token + "&v=5.138");
                     con = (HttpURLConnection) newUrl.openConnection();
@@ -261,7 +261,7 @@ public class chats_activity extends AppCompatActivity {
                     array.get(i).setChatName(message_format(obj.getString("title"), 2));
 
                     break;
-                case "group":Log.i("GroupCheck", type + String.valueOf(i) + " " + String.valueOf(id) );
+                case "group":
                     newUrl = new URL(vk_url + "/groups.getById?group_id=" + -id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     con = (HttpURLConnection) newUrl.openConnection();
                     object = new JSONObject(MainActivity.getStringResponse(con));
