@@ -6,7 +6,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -35,15 +37,16 @@ public class MainActivity extends AppCompatActivity {
     RelativeLayout root;
     String token = "empty";
 
+    private View mDecorView;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        //getWindow().addFlags(WindowManager.LayoutParams.H);
-        View decorView = getWindow().getDecorView();
+        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
 
+        View decorView = getWindow().getDecorView();
         int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                | View.SYSTEM_UI_FLAG_FULLSCREEN;
+                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         decorView.setSystemUiVisibility(uiOptions);
 
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
@@ -85,8 +88,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 token = new TryToGetToken(token, login.getText().toString(), password.getText().toString())
                         .execute(("https://oauth.vk.com/token?grant_type=password&client_id=2274003&client_secret=hHbZxrka2uZ6jB1inYsH&scope=501202911&username="
-                                + URLEncoder.encode(login.getText().toString())
-                                + "&password=" + URLEncoder.encode(password.getText().toString()))).get();
+                                + URLEncoder.encode(login.getText().toString(), java.nio.charset.StandardCharsets.UTF_8.toString())
+                                + "&password=" + URLEncoder.encode(password.getText().toString(), java.nio.charset.StandardCharsets.UTF_8.toString()))).get();
             } catch (Exception e) {
                 Snackbar.make(root, "Catching token error: wrong method", Snackbar.LENGTH_SHORT).show();
             }
@@ -105,7 +108,7 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private class TryToGetToken extends AsyncTask<String, Void, String> {
+    private static class TryToGetToken extends AsyncTask<String, Void, String> {
         String token;
         String login, password;
 

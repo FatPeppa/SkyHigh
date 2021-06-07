@@ -14,20 +14,20 @@
         android:orientation="vertical">
 
         <com.rengwuxian.materialedittext.MaterialEditText
+            android:id="@+id/loginField"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/loginField"
             android:hint="@string/loginFieldHint"
             android:inputType="phone"
             android:text=""
-            android:textColor="@color/design_default_color_primary"
-            android:textColorHint="@color/design_default_color_primary_dark"
+            android:textColor="#8F4FEA"
+            android:textColorHint="#6B5993"
             android:textSize="20sp"
 
+            app:met_baseColor="#AFC8EF"
             app:met_floatingLabel="highlight"
-            app:met_baseColor="#0056d3"
             app:met_primaryColor="#982360"
-            app:met_singleLineEllipsis="true"/>
+            app:met_singleLineEllipsis="true" />
 
         <com.rengwuxian.materialedittext.MaterialEditText
             android:layout_width="match_parent"
@@ -36,12 +36,12 @@
             android:hint="@string/passFieldHint"
             android:inputType="textPassword"
             android:text=""
-            android:textColor="@color/design_default_color_primary"
-            android:textColorHint="@color/design_default_color_primary_dark"
+            android:textColor="#8F4FEA"
+            android:textColorHint="#6B5993"
             android:textSize="20sp"
 
             app:met_floatingLabel="highlight"
-            app:met_baseColor="#0056d3"
+            app:met_baseColor="#AFC8EF"
             app:met_primaryColor="#982360"
             app:met_singleLineEllipsis="true"/>
 
