@@ -24,7 +24,7 @@
             android:textColorHint="#6B5993"
             android:textSize="20sp"
 
-            app:met_baseColor="#AFC8EF"
+            app:met_baseColor="#AB47E1"
             app:met_floatingLabel="highlight"
             app:met_primaryColor="#982360"
             app:met_singleLineEllipsis="true" />
@@ -41,7 +41,7 @@
             android:textSize="20sp"
 
             app:met_floatingLabel="highlight"
-            app:met_baseColor="#AFC8EF"
+            app:met_baseColor="#AB47E1"
             app:met_primaryColor="#982360"
             app:met_singleLineEllipsis="true"/>
 

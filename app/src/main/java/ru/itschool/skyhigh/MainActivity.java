@@ -37,8 +37,6 @@ public class MainActivity extends AppCompatActivity {
     RelativeLayout root;
     String token = "empty";
 
-    private View mDecorView;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

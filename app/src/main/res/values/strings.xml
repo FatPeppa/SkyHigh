@@ -5,4 +5,6 @@
     <string name="btnRegText">Зарегистрироваться</string>
     <string name="loginFieldHint">Введите номер телефона…</string>
     <string name="passFieldHint">Введите пароль…</string>
+    <string name="RegistrationIsUnaccessable">Регистрация новых пользователей пока недоступна. </string>
+    <string name="SorryForUsers">Просим прощения за предоставленные неудобства! </string>
 </resources>
