@@ -8,6 +8,7 @@ import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,6 +26,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
@@ -66,7 +68,8 @@ public class chats_activity extends AppCompatActivity {
 
         chatArr = new ArrayList<ChatItem>();
 
-        ArrayList<ChatItem> exampleArrayList = (ArrayList<ChatItem>) getIntent().getSerializableExtra("NewArrayList");
+        ArrayList<ChatItem> exampleArrayList = (ArrayList<ChatItem>) getIntent().getSerializableExtra("ArrayList");
+
         if (exampleArrayList != null) {
             chatArr = exampleArrayList;
         } else {
@@ -94,64 +97,10 @@ public class chats_activity extends AppCompatActivity {
             Log.i("Hu", "no trouble with arrayList methods");
 
             Intent refresh = new Intent(getIntent());
-            refresh.putExtra("NewArrayList", arrayList);
+            refresh.putExtra("NewArrayList", (Serializable) arrayList);
             startActivity(refresh);
             finish();
         });
-
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        ArrayList<ChatItem> arrayList = new ArrayList<>();
-
-        /*while (true) {
-            try {
-                arrayList = new TryToUpdateArrayOfChats(token, chatArr).execute().get();
-                Thread.sleep(1000);
-            } catch (ExecutionException | InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            if (arrayList != null && ((arrayList.size() != chatArr.size()) || !sameArrayLists(arrayList, chatArr))) {
-                Intent refresh = new Intent(this, chats_activity.class);
-                refresh.putExtra("NewArrayList", arrayList);
-                startActivity(refresh);
-                this.finish();
-            }
-        }*/
-
-        /*displayAllChats(chatArr);
-        Log.i("CHATS", "DISPLAYED");
-
-        try {
-            String[] array = new getServer_new().execute().get();
-            String server = array[0];
-            String key = array[1];
-            String ts = array[2];
-
-
-                //с этой части необходимо повторять
-                array[2] = ts;
-                JSONObject response = new sendPool_to_Server_new(array).execute().get();
-
-                JSONArray updates = response.getJSONArray("updates");
-                ts = Long.toString(response.getLong("ts"));
-
-                arrayList = new TryToUpdateArrayOfChats(token, chatArr, updates).execute().get();
-                Log.i("RES", "Waiting in while hello");
-
-        } catch (ExecutionException | InterruptedException | JSONException e) {
-            e.printStackTrace();
-        }*/
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-
-        Log.i("OnSTOP", "STARTED");
     }
 
     private void displayAllChats() {
