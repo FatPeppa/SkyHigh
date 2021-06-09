@@ -3,6 +3,7 @@ package ru.itschool.skyhigh;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
@@ -11,39 +12,36 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.WindowManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
+import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
-import org.jetbrains.annotations.NotNull;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
+
+import static ru.itschool.skyhigh.MainActivity.getStringResponse;
 
 public class chats_activity extends AppCompatActivity {
     private static final String vk_url = "https://api.vk.com/method";
     private static String token;
-    //private List<Message> chats_last_messages;
+    private ListView list_of_chats;
+    RelativeLayout thisLayout;
+    ArrayList<ChatItem> chatArr;
+    Button updateButton;
 
-    EditText text;
     SharedPreferences prefs;
 
     @Override
@@ -56,30 +54,104 @@ public class chats_activity extends AppCompatActivity {
         int uiOptions = View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                 | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
         decorView.setSystemUiVisibility(uiOptions);
-
         setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         setContentView(R.layout.activity_chats_activity);
 
-        prefs = this.getSharedPreferences(
-                "com.example.app", Context.MODE_PRIVATE);
+        thisLayout = findViewById(R.id.activity_chats_root);
+        updateButton = findViewById(R.id.updateButton);
 
         token = getIntent().getStringExtra("token");
 
-        displayAllChats();
+        list_of_chats = findViewById(R.id.list_of_chats);
+
+        chatArr = new ArrayList<ChatItem>();
+
+        ArrayList<ChatItem> exampleArrayList = (ArrayList<ChatItem>) getIntent().getSerializableExtra("NewArrayList");
+        if (exampleArrayList != null) {
+            chatArr = exampleArrayList;
+        } else {
+            try {
+                chatArr = new TryToGetArrayOfChats(token).execute().get();
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+        displayAllChats(chatArr);
+
+        list_of_chats.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ChatItem item = (ChatItem) list_of_chats.getItemAtPosition(position);
+
+            }
+        });
+
+        updateButton.setOnClickListener(v -> {
+            ArrayList<ChatItem> arrayList = new ArrayList<>();
+
+            arrayList = tryF(chatArr);
+
+            Log.i("Hu", "no trouble with arrayList methods");
+
+            Intent refresh = new Intent(getIntent());
+            refresh.putExtra("NewArrayList", arrayList);
+            startActivity(refresh);
+            finish();
+        });
+
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
+    protected void onResume() {
+        super.onResume();
+        ArrayList<ChatItem> arrayList = new ArrayList<>();
 
-        //ediText.setText(prefs.getString("tag", ""));
+        /*while (true) {
+            try {
+                arrayList = new TryToUpdateArrayOfChats(token, chatArr).execute().get();
+                Thread.sleep(1000);
+            } catch (ExecutionException | InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            if (arrayList != null && ((arrayList.size() != chatArr.size()) || !sameArrayLists(arrayList, chatArr))) {
+                Intent refresh = new Intent(this, chats_activity.class);
+                refresh.putExtra("NewArrayList", arrayList);
+                startActivity(refresh);
+                this.finish();
+            }
+        }*/
+
+        /*displayAllChats(chatArr);
+        Log.i("CHATS", "DISPLAYED");
+
+        try {
+            String[] array = new getServer_new().execute().get();
+            String server = array[0];
+            String key = array[1];
+            String ts = array[2];
+
+
+                //с этой части необходимо повторять
+                array[2] = ts;
+                JSONObject response = new sendPool_to_Server_new(array).execute().get();
+
+                JSONArray updates = response.getJSONArray("updates");
+                ts = Long.toString(response.getLong("ts"));
+
+                arrayList = new TryToUpdateArrayOfChats(token, chatArr, updates).execute().get();
+                Log.i("RES", "Waiting in while hello");
+
+        } catch (ExecutionException | InterruptedException | JSONException e) {
+            e.printStackTrace();
+        }*/
     }
 
     @Override
     protected void onStop() {
         super.onStop();
 
-        //prefs.edit().putString("tag", editText.getText().toString()).apply();
+        Log.i("OnSTOP", "STARTED");
     }
 
     private void displayAllChats() {
@@ -92,6 +164,14 @@ public class chats_activity extends AppCompatActivity {
         } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
+
+        ChatAdapter chatsAdapter = new ChatAdapter(this, chatArr);
+
+        chats.setAdapter(chatsAdapter);
+    }
+
+    private void displayAllChats(ArrayList<ChatItem> chatArr) {
+        ListView chats = findViewById(R.id.list_of_chats);
 
         ChatAdapter chatsAdapter = new ChatAdapter(this, chatArr);
 
@@ -122,6 +202,112 @@ public class chats_activity extends AppCompatActivity {
         }
     }
 
+    private static class TryToUpdateArrayOfChats extends AsyncTask<String, Void, ArrayList<ChatItem>> {
+        String token;
+        ArrayList<ChatItem> chatItems_arrayList;
+        JSONArray updates;
+
+        public TryToUpdateArrayOfChats (String token, ArrayList<ChatItem> chatItems_arrayList, JSONArray updates) {
+            this.token = token;
+            this.chatItems_arrayList = chatItems_arrayList;
+            this.updates = updates;
+        }
+
+        protected ArrayList<ChatItem> doInBackground(String... urls) {
+            JSONObject response1;
+
+            try {
+
+                for (int i = 0; i < updates.length(); i++) {
+                    ChatItem item = new ChatItem();
+
+                    JSONArray update = updates.getJSONArray(i);
+                    if (update.getInt(0) == 4) {
+                        long chat_id = update.getLong(3);
+                        long message_id = update.getLong(1);
+                        item.setLastConversation_ID(chat_id);
+
+                        JSONObject infoMessage = getById(token, message_id);
+                        JSONArray attachments = infoMessage.getJSONArray("items").getJSONObject(0).getJSONArray("attachments");
+
+                        if (chat_id > 2000000000) {
+                            JSONObject chat = getChat(token, chat_id);
+                            item.setChatName( chat.getString("title"));
+                            item.setChat_Type("chat");
+
+                        } else if(chat_id < 0) {
+                            chat_id = -chat_id;
+                            item.setChat_Type("group");
+
+                            URL newUrl = new URL(vk_url + "/groups.getById?group_id=" + chat_id + "&fields=photo_50&access_token=" + token + "&v=5.138");
+                            HttpURLConnection con = (HttpURLConnection) newUrl.openConnection();
+                            JSONObject object = new JSONObject(getStringResponse(con));
+                            JSONObject resObj = object.getJSONArray("response").getJSONObject(0);
+
+                            item.setChatName(message_format(resObj.getString("name"), 2));
+                        } else {
+                            JSONObject profile = infoMessage.getJSONArray("profiles").getJSONObject(0);
+                            item.setChat_Type("user");
+                            item.setChatName(profile.getString("first_name") + " " +profile.getString("last_name"));
+                        }
+
+                        boolean sign = false;
+                        for (int j = 0; j < attachments.length(); j++) {
+                            if (!getAttach(attachments.getJSONObject(j).getString("type")).equals("")
+                                    || !getAttach(attachments.getJSONObject(j).getString("type")).isEmpty()) {
+                                item.setText_lastMessage(getAttach(attachments.getJSONObject(j).getString("type")));
+
+                                sign = true;
+                            }
+                        }
+
+                        if (!sign) {
+                            item.setText_lastMessage(update.getString(5));
+                        }
+
+                        long unixSeconds = System.currentTimeMillis() / 1000L;
+                        Date date = new java.util.Date(unixSeconds);
+                        SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
+                        String formattedDate = sdf.format(date);
+                        item.setLastMessageTime(formattedDate);
+
+                        if (hasLastConversation_ID(chatItems_arrayList, item.getLastConversation_ID())) {
+                            int indexOfLastElement = indexOfChatItem_sameLastConversation_ID(chatItems_arrayList, item.getLastConversation_ID());
+
+                            /*if (chatItems_arrayList.size() == indexOfLastElement) {
+                                chatItems_arrayList.add(new ChatItem());
+                            }*/
+                            if (indexOfLastElement != 0) {
+                                for (int j = indexOfLastElement; j > 0; j--) {
+                                    chatItems_arrayList.set(j, chatItems_arrayList.get(j - 1));
+                                }
+                            }
+
+                            chatItems_arrayList.set(0, item);
+                        } else {
+                            chatItems_arrayList.add(new ChatItem());
+
+                            for (int j = chatItems_arrayList.size() - 1; j > 0; j--) {
+                                chatItems_arrayList.set(j, chatItems_arrayList.get(j - 1));
+                            }
+
+                            chatItems_arrayList.set(0, item);
+                        }
+                    }
+                }
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+
+
+            return chatItems_arrayList;
+        }
+
+        protected void onPostExecute(ArrayList<ChatItem> result) {
+            super.onPostExecute(result);
+        }
+    }
+
     private class TryToGetResObject extends AsyncTask<String, Void, JSONObject> {
         String token;
         String url;
@@ -138,7 +324,7 @@ public class chats_activity extends AppCompatActivity {
                 URL url = new URL(this.url);
                 HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
-                JSONObject obj = new JSONObject(MainActivity.getStringResponse(con).toString());
+                JSONObject obj = new JSONObject(getStringResponse(con).toString());
                 object = obj.getJSONObject("response");
             } catch (Exception e) {
                 e.printStackTrace();
@@ -156,7 +342,7 @@ public class chats_activity extends AppCompatActivity {
     public static JSONObject getLongPollServer() throws IOException, JSONException {
         URL url = new URL(vk_url + "/messages.getLongPollServer?access_token=" + token + "&lp_version=3&v=5.130");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
-        String response = MainActivity.getStringResponse(con);
+        String response = getStringResponse(con);
         JSONObject resp = new JSONObject(response);
 
         return resp.getJSONObject("response");
@@ -165,7 +351,7 @@ public class chats_activity extends AppCompatActivity {
     public static JSONObject sendLongPoll(String server, String key, String ts) throws IOException, JSONException {
         URL URLServer = new URL("https://" + server + "?key=" + key + "&act=a_check&wait=25&ts=" + ts + "&version=3");
         HttpURLConnection connection = (HttpURLConnection) URLServer.openConnection();
-        String a = MainActivity.getStringResponse(connection);
+        String a = getStringResponse(connection);
 
         return new JSONObject(a);
     }
@@ -234,6 +420,7 @@ public class chats_activity extends AppCompatActivity {
             JSONObject last_Conversation = lastConversations.get(i);
             JSONObject peer = last_Conversation.getJSONObject("peer");
             long id = peer.getLong("id");
+            array.get(i).setLastConversation_ID(id);
 
             String type = peer.getString("type");
             array.get(i).setChat_Type(type);
@@ -243,9 +430,9 @@ public class chats_activity extends AppCompatActivity {
                 case "user":
                     URL newUrl = new URL(vk_url + "/users.get?user_ids=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     HttpURLConnection con = (HttpURLConnection) newUrl.openConnection();
-                    JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
+                    JSONObject object = new JSONObject(getStringResponse(con));
                                  Log.i("Cont", object.toString());
-                    //JSONObject resObj = object.getJSONObject("response");
+
                     JSONObject resObj = new JSONObject();
 
                     try {
@@ -265,7 +452,7 @@ public class chats_activity extends AppCompatActivity {
                     //newUrl = new URL(vk_url + "/messages.getChat?chat_id=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     newUrl = new URL(vk_url + "/messages.getConversationsById?peer_ids=" + id + "&access_token=" + token + "&v=5.138");
                     con = (HttpURLConnection) newUrl.openConnection();
-                    object = new JSONObject(MainActivity.getStringResponse(con));
+                    object = new JSONObject(getStringResponse(con));
                     resObj = object.getJSONObject("response");
 
                     JSONObject obj = resObj.getJSONArray("items").getJSONObject(0).getJSONObject("chat_settings");
@@ -277,7 +464,7 @@ public class chats_activity extends AppCompatActivity {
                 case "group":
                     newUrl = new URL(vk_url + "/groups.getById?group_id=" + -id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     con = (HttpURLConnection) newUrl.openConnection();
-                    object = new JSONObject(MainActivity.getStringResponse(con));
+                    object = new JSONObject(getStringResponse(con));
                     resObj = object.getJSONArray("response").getJSONObject(0);
 
 
@@ -306,7 +493,7 @@ public class chats_activity extends AppCompatActivity {
         URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
-        JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
+        JSONObject object = new JSONObject(getStringResponse(con));
         JSONObject resObj = object.getJSONObject("response");
 
         int index = 0;
@@ -320,7 +507,7 @@ public class chats_activity extends AppCompatActivity {
         url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
         con = (HttpURLConnection) url.openConnection();
 
-        object = new JSONObject(MainActivity.getStringResponse(con).toString());
+        object = new JSONObject(getStringResponse(con).toString());
         resObj = object.getJSONObject("response");
 
         int i = 0;
@@ -340,7 +527,7 @@ public class chats_activity extends AppCompatActivity {
         URL url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&count=200&v=5.138");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
 
-        JSONObject object = new JSONObject(MainActivity.getStringResponse(con));
+        JSONObject object = new JSONObject(getStringResponse(con));
         JSONObject resObj = object.getJSONObject("response");
 
         int index = 0;
@@ -354,7 +541,7 @@ public class chats_activity extends AppCompatActivity {
         url = new URL(vk_url + "/messages.getConversations?access_token=" + token + "&offset=200&count=200&v=5.138");
         con = (HttpURLConnection) url.openConnection();
 
-        object = new JSONObject(MainActivity.getStringResponse(con));
+        object = new JSONObject(getStringResponse(con));
         resObj = object.getJSONObject("response");
 
         int i = 0;
@@ -399,6 +586,197 @@ public class chats_activity extends AppCompatActivity {
             str += dst[i];
         }
         return str;
+    }
+
+    public static JSONObject getById(String token, Long message_id) throws IOException, JSONException {
+        URL getById = new URL(vk_url + "/messages.getById?access_token=" + token + "&message_ids=" + Long.toString(message_id) + "&extended=1&v=5.131");
+        HttpURLConnection getResp = (HttpURLConnection) getById.openConnection();
+        String resp = getStringResponse(getResp);
+        return new JSONObject(resp).getJSONObject("response");
+    }
+
+    public static JSONObject getChat(String token, Long chat_id) throws IOException, JSONException {
+        if (chat_id - 2000000000 > 0) {
+            chat_id = chat_id - 2000000000;
+        }
+        URL getChat = new URL(vk_url + "/messages.getChat?access_token=" + token + "&chat_id=" + Long.toString(chat_id) + "&v=5.130");
+        HttpURLConnection connection = (HttpURLConnection) getChat.openConnection();
+        return new JSONObject(getStringResponse(connection)).getJSONObject("response");
+    }
+
+    public static String getAttach(String attach) {
+        switch(attach) {
+            case "photo": {
+                return "Фото";
+            }
+            case "video": {
+                return "Видео";
+            }
+            case "audio": {
+                return "Аудио";
+            }
+            case "doc": {
+                return "Документ";
+            }
+            case "wall": {
+                return "Запись на стене";
+            }
+            case "wall_reply": {
+                return "Комментарий к записи на стене";
+            }
+            case "sticker": {
+                return "Стикер";
+            }
+            case "link": {
+                return "Ссылка";
+            }
+            case "gift": {
+                return "Подарок";
+            }
+            case "market_album": {
+                return "Подборка товаров";
+            }
+            case "market": {
+                return "Товар";
+            }
+            default: {
+                return "";
+            }
+        }
+    }
+
+    public static boolean hasLastConversation_ID(ArrayList<ChatItem> arrayList, long id){
+        for (int i = 0; i < arrayList.size(); i++) {
+            if (arrayList.get(i).getLastConversation_ID() == id) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public static int indexOfChatItem_sameLastConversation_ID(ArrayList<ChatItem> arrayList, long id) {
+        for (int i = 0; i < arrayList.size(); i++) {
+            if (arrayList.get(i).getLastConversation_ID() == id) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public static boolean sameArrayLists(ArrayList<ChatItem> arrayList1, ArrayList<ChatItem> arrayList2) {
+        boolean sign = true;
+
+        for (int i = 0; i < arrayList1.size(); i++) {
+            if (arrayList1.get(i) == arrayList2.get(i)) {
+                sign = false;
+            }
+        }
+
+        return sign;
+    }
+
+    private void reload(ArrayList<ChatItem> chatArr)
+    {
+        Intent intent = getIntent();
+        intent.putExtra("NewArrayList", chatArr);
+
+        overridePendingTransition(0, 0);//4
+        intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION);//5
+        finish();//6
+        overridePendingTransition(0, 0);//7
+        startActivity(intent);//8
+    }
+
+    private static class getServer_new extends AsyncTask<String, Void, String[]> {
+        public getServer_new () {}
+
+        protected String[] doInBackground(String... urls) {
+            JSONObject response1 = new JSONObject();
+            String[] array = new String[3];
+
+            try {
+                response1 = getLongPollServer();
+                String server = response1.getString("server");
+                String key = response1.getString("key");
+                String ts = Long.toString(response1.getLong("ts"));
+
+                array[0] = server; array[1] = key; array[2] = ts;
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+
+            return array;
+        }
+
+        protected void onPostExecute(String[] result) {
+            super.onPostExecute(result);
+        }
+    }
+
+    private static class sendPool_to_Server_new extends AsyncTask<String, Void, JSONObject> {
+        String[] array;
+        public sendPool_to_Server_new (String[] array) {
+            this.array = array;
+        }
+
+        protected JSONObject doInBackground(String... urls) {
+            JSONObject response = new JSONObject();
+            String server = this.array[0];
+            String key = this.array[1];
+            String ts = this.array[2];
+
+            try {
+                response = sendLongPoll(server, key, ts);
+            } catch (IOException | JSONException e) {
+                e.printStackTrace();
+            }
+
+            return response;
+        }
+
+        protected void onPostExecute(JSONObject result) {
+            super.onPostExecute(result);
+        }
+    }
+
+    private Thread timer = new Thread(new Runnable() {
+        @Override
+        public void run() {
+            try{
+                Thread.sleep(5000);
+                Log.i("Timer", "TimerFinished");
+            }
+            catch(Exception e){
+                Log.e("Timer","Error");
+            }
+        }
+    });
+
+    public static ArrayList<ChatItem> tryF(ArrayList<ChatItem> chatArr) {
+        ArrayList<ChatItem> arrayList = new ArrayList<>();
+        String[] array = new String[3];
+
+        try {
+            array = new getServer_new().execute().get();
+            String server = array[0];
+            String key = array[1];
+            String ts = array[2];
+
+            //с этой части необходимо повторять
+            array[2] = ts;
+            JSONObject response = new sendPool_to_Server_new(array).execute().get();
+
+            JSONArray updates = response.getJSONArray("updates");
+            ts = Long.toString(response.getLong("ts"));
+
+            arrayList = new TryToUpdateArrayOfChats(token, chatArr, updates).execute().get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return arrayList;
     }
 }
 

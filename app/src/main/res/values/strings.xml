@@ -7,4 +7,5 @@
     <string name="passFieldHint">Введите пароль…</string>
     <string name="RegistrationIsUnaccessable">Регистрация новых пользователей пока недоступна. </string>
     <string name="SorryForUsers">Просим прощения за предоставленные неудобства! </string>
+    <string name="UpdateText">Обновить сообщения;) </string>
 </resources>
