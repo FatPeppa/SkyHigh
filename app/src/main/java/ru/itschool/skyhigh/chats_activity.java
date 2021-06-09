@@ -508,7 +508,7 @@ public class chats_activity extends AppCompatActivity {
     private static String message_format(String text, int format_id) {
         switch (format_id) {
             case 1:
-                if (text.length() >= 20 ) {
+                if (text.length() >= 28 ) {
                     return text = String_cut(text.trim(), 0, 20) + "...";
                 } else {
                     return text;
