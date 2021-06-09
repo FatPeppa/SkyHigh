@@ -6,17 +6,10 @@ public class Filter {
     public static final String database_name = "filter.db";
     public static Connection conn;
     public static Statement statmt;
-    public static void main(String[] args) {
-        try {
-            Class.forName("org.sqlite.JDBC");
-            conn = DriverManager.getConnection("jdbc:sqlite:" + database_name);
-            connect();
-            createDB();
-//            add_ban_word(1234325, "message");
-//            System.out.println(check_delete(1234325, "this meswqsage containts BanWord"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+
+    Filter() throws Exception {
+        connect();
+        createDB();
     }
 
     public static void connect() throws Exception {

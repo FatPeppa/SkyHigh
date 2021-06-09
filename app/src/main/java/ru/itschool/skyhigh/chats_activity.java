@@ -3,6 +3,7 @@ package ru.itschool.skyhigh;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -49,8 +50,7 @@ public class chats_activity extends AppCompatActivity {
     RelativeLayout thisLayout;
     ArrayList<ChatItem> chatArr;
     Button updateButton;
-
-    SharedPreferences prefs;
+    Filter filter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,6 +71,12 @@ public class chats_activity extends AppCompatActivity {
         token = getIntent().getStringExtra("token");
 
         list_of_chats = findViewById(R.id.list_of_chats);
+
+        try {
+            filter = new Filter();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
         chatArr = new ArrayList<ChatItem>();
 
@@ -160,7 +166,7 @@ public class chats_activity extends AppCompatActivity {
         }
     }
 
-    private static class TryToUpdateArrayOfChats extends AsyncTask<String, Void, ArrayList<ChatItem>> {
+    private class TryToUpdateArrayOfChats extends AsyncTask<String, Void, ArrayList<ChatItem>> {
         String token;
         ArrayList<ChatItem> chatItems_arrayList;
         JSONArray updates;
@@ -220,7 +226,7 @@ public class chats_activity extends AppCompatActivity {
                         }
 
                         try {
-                            if(Filter.check_delete(chat_id, update.getString(5))) {
+                            if(filter.check_delete(chat_id, update.getString(5))) {
                                 deleteMessage(message_id);
                             }
                         } catch (Exception e) {
@@ -233,7 +239,7 @@ public class chats_activity extends AppCompatActivity {
 
                         long unixSeconds = System.currentTimeMillis() / 1000L;
                         Date date = new java.util.Date(unixSeconds);
-                        SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
+                        @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd-MM-yyyy HH:mm");
                         String formattedDate = sdf.format(date);
                         item.setLastMessageTime(formattedDate);
 
@@ -722,7 +728,7 @@ public class chats_activity extends AppCompatActivity {
         }
     });
 
-    public static ArrayList<ChatItem> tryF(ArrayList<ChatItem> chatArr) {
+    public ArrayList<ChatItem> tryF(ArrayList<ChatItem> chatArr) {
         ArrayList<ChatItem> arrayList = new ArrayList<>();
         String[] array = new String[3];
 
@@ -783,7 +789,7 @@ public class chats_activity extends AppCompatActivity {
             }
 
             try {
-                Filter.add_ban_word(chat_ID, banned_word.getText().toString());
+                filter.add_ban_word(chat_ID, banned_word.getText().toString());
 
                 ArrayList<ChatItem> arrayList = new ArrayList<>();
 
