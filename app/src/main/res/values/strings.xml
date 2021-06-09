@@ -8,4 +8,6 @@
     <string name="RegistrationIsUnaccessable">Регистрация новых пользователей пока недоступна. </string>
     <string name="SorryForUsers">Просим прощения за предоставленные неудобства! </string>
     <string name="UpdateText">Обновить сообщения;) </string>
+    <string name="adding_banned_word_hint">Введите запрещённое слово._. </string>
+    <string name="delete_this_word">Удалить</string>
 </resources>

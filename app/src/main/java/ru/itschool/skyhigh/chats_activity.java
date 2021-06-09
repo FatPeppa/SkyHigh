@@ -1,5 +1,6 @@
 package ru.itschool.skyhigh;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Context;
@@ -9,6 +10,7 @@ import android.content.pm.ActivityInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +23,9 @@ import android.widget.ListView;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.google.android.material.snackbar.Snackbar;
+import com.rengwuxian.materialedittext.MaterialEditText;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,6 +34,7 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -86,6 +92,9 @@ public class chats_activity extends AppCompatActivity {
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 ChatItem item = (ChatItem) list_of_chats.getItemAtPosition(position);
 
+                long Conversation_ID = item.getLastConversation_ID();
+
+                show_AddingBanWordWindow(chatArr, Conversation_ID);
             }
         });
 
@@ -208,6 +217,14 @@ public class chats_activity extends AppCompatActivity {
 
                                 sign = true;
                             }
+                        }
+
+                        try {
+                            if(Filter.check_delete(chat_id, update.getString(5))) {
+                                deleteMessage(message_id);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
 
                         if (!sign) {
@@ -646,13 +663,15 @@ public class chats_activity extends AppCompatActivity {
             String[] array = new String[3];
 
             try {
+                Filter.createDB();
+                Filter.connect();
                 response1 = getLongPollServer();
                 String server = response1.getString("server");
                 String key = response1.getString("key");
                 String ts = Long.toString(response1.getLong("ts"));
 
                 array[0] = server; array[1] = key; array[2] = ts;
-            } catch (IOException | JSONException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
 
@@ -726,6 +745,63 @@ public class chats_activity extends AppCompatActivity {
         }
 
         return arrayList;
+    }
+
+    public static void deleteMessage(long message_id) throws IOException {
+        URL url = new URL(vk_url + "/messages.delete?access_token=" + token + "&message_ids=" + Long.toString(message_id) + "&v=5.131");
+        HttpURLConnection con = (HttpURLConnection) url.openConnection();
+    }
+
+
+
+
+
+
+    private void show_AddingBanWordWindow(ArrayList<ChatItem> chatArr, long chat_ID) {
+
+        AlertDialog.Builder dialog = new AlertDialog.Builder(this);
+        dialog.setTitle("Удалить сообщения по слову");
+        dialog.setMessage("Введите слово, сообщения с которым нужно удалить");
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View adding_banned_word_window = inflater.inflate(R.layout.adding_banned_word_window, null);
+        dialog.setView(adding_banned_word_window);
+
+        final MaterialEditText banned_word = adding_banned_word_window.findViewById(R.id.banned_word_textPlace);
+
+        dialog.setNegativeButton("Отменить", (dialogInterface, which) -> dialogInterface.dismiss());
+
+        dialog.setPositiveButton("Удалить", (dialogInterface, which) -> {
+            if (TextUtils.isEmpty(banned_word.getText().toString())) {
+                Snackbar.make(thisLayout, "Введите удаляемое слово", Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+
+            if (banned_word.getText().toString().length() < 3) {
+                Snackbar.make(thisLayout, "Введите удаляемое слово", Snackbar.LENGTH_SHORT).show();
+                return;
+            }
+
+            try {
+                Filter.add_ban_word(chat_ID, banned_word.getText().toString());
+
+                ArrayList<ChatItem> arrayList = new ArrayList<>();
+
+                arrayList = tryF(chatArr);
+
+                Log.i("Hu", "no trouble with arrayList methods");
+
+                Intent refresh = new Intent(getIntent());
+                refresh.putExtra("NewArrayList", (Serializable) arrayList);
+                startActivity(refresh);
+                finish();
+
+            } catch (Exception e) {
+                Snackbar.make(thisLayout, "Adding banned word error", Snackbar.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
     }
 }
 
