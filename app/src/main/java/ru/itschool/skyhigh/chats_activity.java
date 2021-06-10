@@ -788,6 +788,8 @@ public class chats_activity extends AppCompatActivity {
     public static void deleteMessage(long message_id) throws IOException {
         URL url = new URL(vk_url + "/messages.delete?access_token=" + token + "&message_ids=" + Long.toString(message_id) + "&v=5.131");
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
+
+        Log.i("hhh", getStringResponse(con));
     }
 
     private void show_AddingBanWordWindow(ArrayList<ChatItem> chatArr, long chat_ID, String[] testStringArr) {
