@@ -1,6 +1,10 @@
 package ru.itschool.skyhigh;
 
-import java.sql.*;
+
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 
 public class Filter {
     public static final String database_name = "filter.db";
@@ -33,6 +37,6 @@ public class Filter {
     }
 
     public static void add_ban_word(long chat_id, String banWord) throws Exception {
-        statmt.execute("INSERT INTO 'filter' ('chat_id', 'message') VALUES (" + Long.toString(chat_id) + ", '" + banWord + "'); ");
+        statmt.execute("INSERT INTO 'filter' ('chat_id', 'message') VALUES (" + chat_id + ", '" + banWord + "'); ");
     }
 }

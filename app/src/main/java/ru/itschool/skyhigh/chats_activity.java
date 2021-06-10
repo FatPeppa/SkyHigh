@@ -4,10 +4,13 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.annotation.SuppressLint;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -40,8 +43,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.ExecutionException;
+import java.sql.*;
 
 import static ru.itschool.skyhigh.MainActivity.getStringResponse;
+import static ru.itschool.skyhigh.dsadsaContract.COLUMN_CHAT_ID;
+import static ru.itschool.skyhigh.dsadsaContract.COLUMN_MESSAGE;
+import static ru.itschool.skyhigh.dsadsaContract.TABLE_NAME;
 
 public class chats_activity extends AppCompatActivity {
     private static final String vk_url = "https://api.vk.com/method";
@@ -50,10 +57,13 @@ public class chats_activity extends AppCompatActivity {
     RelativeLayout thisLayout;
     ArrayList<ChatItem> chatArr;
     Button updateButton;
-    Filter filter;
+    String[] testStringArr;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
+
         super.onCreate(savedInstanceState);
 
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
@@ -72,13 +82,13 @@ public class chats_activity extends AppCompatActivity {
 
         list_of_chats = findViewById(R.id.list_of_chats);
 
+        chatArr = new ArrayList<ChatItem>();
+
         try {
-            filter = new Filter();
-        } catch (Exception e) {
+            testStringArr = new getServer_new().execute().get();
+        } catch (ExecutionException | InterruptedException e) {
             e.printStackTrace();
         }
-
-        chatArr = new ArrayList<ChatItem>();
 
         ArrayList<ChatItem> exampleArrayList = (ArrayList<ChatItem>) getIntent().getSerializableExtra("ArrayList");
 
@@ -93,21 +103,10 @@ public class chats_activity extends AppCompatActivity {
         }
         displayAllChats(chatArr);
 
-        list_of_chats.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                ChatItem item = (ChatItem) list_of_chats.getItemAtPosition(position);
-
-                long Conversation_ID = item.getLastConversation_ID();
-
-                show_AddingBanWordWindow(chatArr, Conversation_ID);
-            }
-        });
-
         updateButton.setOnClickListener(v -> {
             ArrayList<ChatItem> arrayList = new ArrayList<>();
 
-            arrayList = tryF(chatArr);
+            arrayList = tryF(chatArr, testStringArr);
 
             Log.i("Hu", "no trouble with arrayList methods");
 
@@ -115,6 +114,17 @@ public class chats_activity extends AppCompatActivity {
             refresh.putExtra("NewArrayList", (Serializable) arrayList);
             startActivity(refresh);
             finish();
+        });
+
+        list_of_chats.setOnItemClickListener(new android.widget.AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                ChatItem item = (ChatItem) list_of_chats.getItemAtPosition(position);
+
+                long Conversation_ID = item.getLastConversation_ID();
+
+                show_AddingBanWordWindow(chatArr, Conversation_ID, testStringArr);
+            }
         });
     }
 
@@ -164,6 +174,33 @@ public class chats_activity extends AppCompatActivity {
         protected void onPostExecute(ArrayList<ChatItem> result) {
             super.onPostExecute(result);
         }
+    }
+
+    public Boolean check_delete(long chat_id, String message) {
+
+        // cur = db.query(TABLE_NAME, new String[]{COLUMN_CHAT_ID, COLUMN_MESSAGE}, null, null, null, null, null);
+        //         String mess;
+        //         while(cur.moveToNext()) {
+        //             mess = cur.getString(cur.getColumnIndex(COLUMN_MESSAGE));
+        //             int chat_id = cur.getInt(cur.getColumnIndex(COLUMN_CHAT_ID));
+        //             if(chat_id)
+        //         }
+        //         String mess = cur.getString(cur.getColumnIndex(COLUMN_MESSAGE));
+        //         cur.close();
+        dsadsaDbHelper helper = new dsadsaDbHelper(this);
+        SQLiteDatabase db = helper.getWritableDatabase();
+
+        Cursor cur = db.query(TABLE_NAME, new String[]{COLUMN_CHAT_ID, COLUMN_MESSAGE}, null, null, null, null, null);
+        while(cur.moveToNext()) {
+            if(cur.getLong(cur.getColumnIndex(COLUMN_CHAT_ID)) == chat_id) {
+                if(message.toLowerCase().contains(cur.getString(cur.getColumnIndex(COLUMN_MESSAGE)).toLowerCase())) {
+                    cur.close();
+                    return true;
+                }
+            }
+        }
+        cur.close();
+        return false;
     }
 
     private class TryToUpdateArrayOfChats extends AsyncTask<String, Void, ArrayList<ChatItem>> {
@@ -226,7 +263,7 @@ public class chats_activity extends AppCompatActivity {
                         }
 
                         try {
-                            if(filter.check_delete(chat_id, update.getString(5))) {
+                            if(check_delete(chat_id, update.getString(5))) {
                                 deleteMessage(message_id);
                             }
                         } catch (Exception e) {
@@ -397,13 +434,13 @@ public class chats_activity extends AppCompatActivity {
             String type = peer.getString("type");
             array.get(i).setChat_Type(type);
             //array.get(i).setChatName(String.valueOf(id));
-            
+
             switch (type) {
                 case "user":
                     URL newUrl = new URL(vk_url + "/users.get?user_ids=" + id + "&fields=photo_50&access_token=" + token + "&v=5.138");
                     HttpURLConnection con = (HttpURLConnection) newUrl.openConnection();
                     JSONObject object = new JSONObject(getStringResponse(con));
-                                 Log.i("Cont", object.toString());
+                    Log.i("Cont", object.toString());
 
                     JSONObject resObj = new JSONObject();
 
@@ -472,7 +509,7 @@ public class chats_activity extends AppCompatActivity {
         while (!resObj.getJSONArray("items").isNull(index)) {
             JSONObject last_message = resObj.getJSONArray("items").getJSONObject(index).getJSONObject("last_message");
             array.add(last_message);
-            
+
             index++;
         }
 
@@ -669,8 +706,6 @@ public class chats_activity extends AppCompatActivity {
             String[] array = new String[3];
 
             try {
-                Filter.createDB();
-                Filter.connect();
                 response1 = getLongPollServer();
                 String server = response1.getString("server");
                 String key = response1.getString("key");
@@ -728,19 +763,16 @@ public class chats_activity extends AppCompatActivity {
         }
     });
 
-    public ArrayList<ChatItem> tryF(ArrayList<ChatItem> chatArr) {
+    public ArrayList<ChatItem> tryF(ArrayList<ChatItem> chatArr, String[] serverData) {
         ArrayList<ChatItem> arrayList = new ArrayList<>();
-        String[] array = new String[3];
 
         try {
-            array = new getServer_new().execute().get();
-            String server = array[0];
-            String key = array[1];
-            String ts = array[2];
+            String server = serverData[0];
+            String key = serverData[1];
+            String ts = serverData[2];
 
             //с этой части необходимо повторять
-            array[2] = ts;
-            JSONObject response = new sendPool_to_Server_new(array).execute().get();
+            JSONObject response = new sendPool_to_Server_new(serverData).execute().get();
 
             JSONArray updates = response.getJSONArray("updates");
             ts = Long.toString(response.getLong("ts"));
@@ -758,12 +790,8 @@ public class chats_activity extends AppCompatActivity {
         HttpURLConnection con = (HttpURLConnection) url.openConnection();
     }
 
+    private void show_AddingBanWordWindow(ArrayList<ChatItem> chatArr, long chat_ID, String[] testStringArr) {
 
-
-
-
-
-    private void show_AddingBanWordWindow(ArrayList<ChatItem> chatArr, long chat_ID) {
 
         AlertDialog.Builder dialog = new AlertDialog.Builder(this);
         dialog.setTitle("Удалить сообщения по слову");
@@ -789,13 +817,26 @@ public class chats_activity extends AppCompatActivity {
             }
 
             try {
-                filter.add_ban_word(chat_ID, banned_word.getText().toString());
-
+                // cur = db.query(TABLE_NAME, new String[]{COLUMN_CHAT_ID, COLUMN_MESSAGE}, null, null, null, null, null);
+                //         String mess;
+                //         while(cur.moveToNext()) {
+                //             mess = cur.getString(cur.getColumnIndex(COLUMN_MESSAGE));
+                //             int chat_id = cur.getInt(cur.getColumnIndex(COLUMN_CHAT_ID));
+                //             if(chat_id)
+                //         }
+                //         String mess = cur.getString(cur.getColumnIndex(COLUMN_MESSAGE));
+                //         cur.close();
+                dsadsaDbHelper helper = new dsadsaDbHelper(this);
+                SQLiteDatabase db = helper.getWritableDatabase();
+                ContentValues cv = new ContentValues();
+                cv.put(COLUMN_CHAT_ID, chat_ID);
+                cv.put(COLUMN_MESSAGE, banned_word.getText().toString());
+                db.insert(TABLE_NAME, null, cv);
                 ArrayList<ChatItem> arrayList = new ArrayList<>();
 
-                arrayList = tryF(chatArr);
+                arrayList = tryF(chatArr, testStringArr);
 
-                Log.i("Hu", "no trouble with arrayList methods");
+                Log.i("Hu", "no trouble with adding word");
 
                 Intent refresh = new Intent(getIntent());
                 refresh.putExtra("NewArrayList", (Serializable) arrayList);
@@ -834,5 +875,3 @@ class ChatAdapter extends ArrayAdapter<ChatItem> {
         return convertView;
     }
 }
-
-
